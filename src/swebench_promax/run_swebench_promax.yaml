@@ -20,7 +20,8 @@ agents:
 
 environment:
   type: docker
-  force_build: true
+  # Tasks set [environment].docker_image, so Harbor runs the published images without building.
+  force_build: false
   delete: true
 
 orchestrator:

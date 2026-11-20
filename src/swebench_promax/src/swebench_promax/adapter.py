@@ -10,6 +10,7 @@ the official eval script verbatim into ``tests/eval.sh`` and reproduces the orig
 from __future__ import annotations
 
 import json
+import re
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
@@ -56,6 +57,11 @@ def load_records(data_dir: Path | None = None) -> list[ProMaxRecord]:
         )
         for r in rows
     ]
+
+
+def task_name(instance_id: str) -> str:
+    """Registry-safe task name: lowercase; anything other than [a-z0-9._-] becomes a hyphen."""
+    return re.sub(r"[^a-z0-9._-]+", "-", instance_id.lower()).strip("-._")
 
 
 def _render(text: str, **repls: str) -> str:
@@ -109,6 +115,7 @@ class SWEBenchProMaxAdapter:
             _render(
                 (t / "task.toml").read_text(),
                 instance_id=rec.instance_id,
+                task_name=task_name(rec.instance_id),
                 language=lang,
                 repo=rec.repo,
                 docker_image=rec.image_name,

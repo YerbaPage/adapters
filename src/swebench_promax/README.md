@@ -44,7 +44,7 @@ Paper: https://openreview.net/forum?id=12gyjCxLXM
 
 ```
 swebench_promax/<instance_id>/
-├── task.toml              # name = "swe-bench-promax/<instance_id>", authors, timeouts, resources
+├── task.toml              # name = "swe-bench-promax/<lowercased instance_id>", authors, timeouts, resources
 ├── instruction.md         # problem statement + one line saying where the repo is
 ├── environment/
 │   └── Dockerfile         # used only with --force-build; the image already contains these steps
@@ -57,11 +57,11 @@ swebench_promax/<instance_id>/
 ## Run Evaluation / Harness
 
 ```bash
-# oracle (default agent in the config)
-harbor run -c src/swebench_promax/run_swebench_promax.yaml
-
-# a specific agent/model on the registered dataset
+# registered dataset (main way to run)
 harbor run -d swe-bench-promax/swebench-promax -a mini-swe-agent -m <provider/model>
+
+# reference config (oracle by default) on locally generated tasks
+harbor run -c src/swebench_promax/run_swebench_promax.yaml
 
 # local generated tasks
 harbor run -p datasets/swebench_promax -a oracle -n 2
