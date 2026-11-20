@@ -1,0 +1,46 @@
+version = "1.0"
+
+[task]
+name = "swe-bench-promax/{instance_id}"
+description = "SWE-Bench-ProMax large-scale cross-file code refactoring task ({language})."
+authors = [
+    { name = "Yuling Shi", email = "yuling.shi@sjtu.edu.cn" },
+    { name = "Jinghan Xu" },
+    { name = "Kelin Fu" },
+    { name = "Wenhao Zeng" },
+    { name = "Shilin He" },
+    { name = "Lei Zhang" },
+    { name = "Yue Liu" },
+    { name = "Zelin Zhao" },
+    { name = "Terry Yue Zhuo" },
+    { name = "Jialun Cao" },
+    { name = "Siyu Ye" },
+    { name = "Tianyu Liu" },
+    { name = "Kai Cai" },
+    { name = "Shing-Chi Cheung" },
+    { name = "Xiaodong Gu" },
+]
+keywords = ["refactoring", "swe-bench", "swe-bench-promax", "{language}"]
+
+[metadata]
+category = "refactoring"
+tags = ["swe-bench-promax", "{language}", "{repo}"]
+original_image = "{docker_image}"
+
+[agent]
+timeout_sec = {agent_timeout}
+
+[verifier]
+# The original harness grades in a container started with `--network none`.
+network_mode = "no-network"
+timeout_sec = {verifier_timeout}
+
+[environment]
+# The published per-task image already contains everything environment/Dockerfile adds, so Harbor runs
+# it directly instead of building. environment/Dockerfile is only used with --force-build.
+docker_image = "{docker_image}"
+build_timeout_sec = 3600.0
+cpus = 4
+memory_mb = 12288
+storage_mb = 20480
+gpus = 0
