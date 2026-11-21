@@ -78,7 +78,7 @@ uv sync
 uv run swebench_promax --output-dir ../../datasets/swebench_promax            # all 170 tasks
 uv run swebench_promax --output-dir /tmp/pmx --languages python rust --limit 5
 uv run swebench_promax --output-dir /tmp/pmx --task-ids astral-sh__ruff-21445 --overwrite
-uv run swebench_promax --output-dir /tmp/pmx_parity --split parity            # 48-task parity subset
+uv run swebench_promax --output-dir /tmp/pmx_parity --split parity            # 56-task parity subset
 uv run swebench_promax --output-dir /tmp/pmx --data-dir /path/to/local/json   # offline source files
 ```
 
@@ -88,14 +88,10 @@ uv run swebench_promax --output-dir /tmp/pmx --data-dir /path/to/local/json   # 
 
 Proposed plan:
 
-- **Subset:** `parity_task_ids.txt`, 48 tasks, 8 per language from C, C++, Java, Python, Rust and
-  TypeScript, drawn by `make_parity_subset.py` with a fixed seed (20261121). The selection rule was
-  fixed before any parity run, and the script reproduces the exact list:
-  - the 23 Go tasks are left out, because Go builds are the heaviest workload on the single host
-    that runs the original side (they have crashed it); Go tasks stay in the adapted dataset and in
-    the oracle check;
-  - the remaining pool is 20 C / 22 C++ / 26 Java / 29 Python / 22 Rust / 28 TypeScript.
-  - both sides use the same images and eval scripts.
+- **Subset:** `parity_task_ids.txt`, 56 tasks, 8 per language (all 7 languages), drawn by
+  `make_parity_subset.py` with a fixed seed (20261121) from tasks sorted by instance id. The selection
+  rule was fixed before any parity run, and the script reproduces the exact list. Both sides use the
+  same images and eval scripts.
 - **Agent:** `mini-swe-agent` (Harbor has a built-in implementation), pinned version, same
   step and cost limits on both sides, model chosen with the Harbor team.
 - **Runs:** sanity check on 5–10 tasks per side, then 1 full run per side, then 3 runs per side.
@@ -103,7 +99,7 @@ Proposed plan:
 
 | Agent | Model | Metric | Runs | Dataset size | Original | Harbor |
 |---|---|---|---|---|---|---|
-| mini-swe-agent@TBD | TBD | Resolved rate (%) | 3 | 48 | TBD | TBD |
+| mini-swe-agent@TBD | TBD | Resolved rate (%) | 3 | 56 | TBD | TBD |
 
 Reproduction:
 
@@ -141,11 +137,9 @@ harbor run -p datasets/swebench_promax_parity -a mini-swe-agent -m <model> -n 2
   model API. ProMax issues are recent; agents with internet access can still look up upstream fixes,
   so for leaderboard use consider an allowlist that only permits the model endpoint.
 - **Oracle validation (2026-11-20):** `harbor run` (Harbor 0.26.0, local Docker, verifier
-  `network_mode = "no-network"`) on all **170** tasks: the `oracle` agent gives reward 1.0 on 170/170
-  and the `nop` agent gives 0.0 on 170/170. Non-Go tasks ran 3–4 trials at a time per agent; the 23 Go
-  tasks ran one at a time. The images were used as prebuilt `docker_image`s (as in the published
-  adapter); see Troubleshooting for why local builds of many tasks at once are avoided.
-- **Go tasks:** heavy builds; avoid high concurrency on one host.
+  `network_mode = "no-network"`) on all **170** tasks, one job per agent with `-n 4`: the `oracle`
+  agent gives reward 1.0 on 170/170 and the `nop` agent gives 0.0 on 170/170, 0 exceptions. The tasks
+  used the release images as prebuilt `docker_image`s, as the published adapter does.
 - **Hidden test patch location:** the eval script embeds the hidden test patch, and it lives in
   `tests/`, which Harbor only mounts for the verifier.
 

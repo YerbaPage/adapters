@@ -4,9 +4,7 @@
 Rules (fixed in advance, so the subset is not chosen after seeing any score):
 
 1. Drop any task the adapter excludes (currently none).
-2. Drop the 23 Go tasks. Go builds are by far the heaviest workload and have repeatedly brought
-   down the single host that runs the original side of the comparison.
-3. From what is left, take N tasks per language with a fixed seed, sorted by instance id first so
+2. From the rest, take N tasks per language with a fixed seed, sorted by instance id first so
    the draw does not depend on the order of the source file.
 
 Run:  python3 make_parity_subset.py --data-dir /path/with/swe-bench-promax.json
@@ -28,7 +26,7 @@ def main() -> None:
     ap.add_argument("--per-language", type=int, default=8)
     ap.add_argument("--seed", type=int, default=20261121)
     ap.add_argument("--out", type=Path, default=Path(__file__).parent / "parity_task_ids.txt")
-    ap.add_argument("--drop-languages", nargs="*", default=["go"])
+    ap.add_argument("--drop-languages", nargs="*", default=[])
     a = ap.parse_args()
 
     recs = load_records(a.data_dir)
