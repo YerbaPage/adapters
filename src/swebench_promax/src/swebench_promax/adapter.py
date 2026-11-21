@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 HF_REPO = "swe-bench-promax/SWE-Bench-ProMax"
-HF_REVISION = "014a4113c86327beacee3b85e567d32afd56ba56"
+HF_REVISION = "b6f4fd65a18c0875ee410b1dcc32246c099ec03b"
 TEMPLATE_DIR = Path(__file__).parent / "task-template"
 
 # Instance ids left out of the adapted dataset, with the reason. Empty: every task's empty patch fails
