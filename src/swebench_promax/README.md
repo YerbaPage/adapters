@@ -96,7 +96,7 @@ uv sync
 uv run swebench_promax --output-dir ../../datasets/swebench_promax            # all 170 tasks
 uv run swebench_promax --output-dir /tmp/pmx --languages python rust --limit 5
 uv run swebench_promax --output-dir /tmp/pmx --task-ids astral-sh__ruff-21445 --overwrite
-uv run swebench_promax --output-dir /tmp/pmx_parity --split parity            # 56-task parity subset
+uv run swebench_promax --output-dir /tmp/pmx_parity --split parity            # 28-task parity subset
 uv run swebench_promax --output-dir /tmp/pmx --data-dir /path/to/local/json   # offline source files
 ```
 
@@ -106,18 +106,18 @@ uv run swebench_promax --output-dir /tmp/pmx --data-dir /path/to/local/json   # 
 
 Proposed plan:
 
-- **Subset:** `parity_task_ids.txt`, 56 tasks, 8 per language (all 7 languages), drawn by
+- **Subset:** `parity_task_ids.txt`, 28 tasks, 4 per language (all 7 languages), drawn by
   `make_parity_subset.py` with a fixed seed (20261121) from tasks sorted by instance id. The selection
   rule was fixed before any parity run, and the script reproduces the exact list. Both sides use the
   same images and eval scripts.
-- **Agent:** `mini-swe-agent` (Harbor has a built-in implementation), pinned version, same
-  step and cost limits on both sides, model chosen with the Harbor team.
+- **Agent:** `mini-swe-agent@2.4.6` (Harbor has a built-in implementation), same
+  step and cost limits on both sides; model `deepseek-v4.1-flash` through the Harbor parity API (agreed with the Harbor team).
 - **Runs:** sanity check on 5–10 tasks per side, then 1 full run per side, then 3 runs per side.
 - Reported as mean ± sample SEM with the run-range overlap criterion.
 
 | Agent | Model | Metric | Runs | Dataset Size | Original (mean ± SEM) | Harbor (mean ± SEM) |
 |---|---|---|---|---|---|---|
-| mini-swe-agent@TBD | TBD | Resolved rate (%) | 3 | 56 (32.9%) | TBD | TBD |
+| mini-swe-agent@2.4.6 | deepseek-v4.1-flash | Resolved rate (%) | 3 | 28 (16.5%) | TBD | TBD |
 
 Reproduction:
 

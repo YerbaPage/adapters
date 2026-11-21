@@ -20,8 +20,8 @@
             {
                 "split": "test",
                 "adapted_benchmark_size": 170,
-                "parity_benchmark_size": 56,
-                "parity_sampling_rate": 0.329,
+                "parity_benchmark_size": 28,
+                "parity_sampling_rate": 0.165,
                 "registry_benchmark_size": 170,
                 "added_agents": [
                     "None"

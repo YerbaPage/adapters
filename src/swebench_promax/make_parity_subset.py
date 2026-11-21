@@ -23,7 +23,7 @@ from swebench_promax.adapter import EXCLUDED, load_records
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--data-dir", type=Path, default=None)
-    ap.add_argument("--per-language", type=int, default=8)
+    ap.add_argument("--per-language", type=int, default=4)
     ap.add_argument("--seed", type=int, default=20261121)
     ap.add_argument("--out", type=Path, default=Path(__file__).parent / "parity_task_ids.txt")
     ap.add_argument("--drop-languages", nargs="*", default=[])
