@@ -43,6 +43,9 @@ Paper: https://openreview.net/forum?id=12gyjCxLXM
   `patch -p1`; an apply failure scores 0) and then runs the eval script. Nothing else from the agent's
   container reaches grading.
 - Verifier runs with `network_mode = "no-network"`, matching the original offline grading.
+- During `agent.run()` the agent can reach only `api.openai.com` and `api.anthropic.com`
+  (`[agent] network_mode = "allowlist"`), so it cannot download the upstream fix; installing the agent
+  still has network.
 - Oracle (`solution/solve.sh`) applies the reference patch with the same commands as the original
   harness (`git apply -v`, fallback `patch -p1`).
 - `--languages`, `--task-ids`, `--limit`, `--split parity` selection.
@@ -82,6 +85,13 @@ A single task:
 harbor trial start -p datasets/swebench_promax/mikf__gallery-dl-7872 -a oracle
 ```
 
+If the model is served from another host (a gateway, a proxy, another provider), allow it for the agent
+phase at run time:
+
+```bash
+harbor run -p datasets/swebench_promax -a mini-swe-agent -m openai/<model> --allow-agent-host <api-host>
+```
+
 Every trial keeps the agent's patch (`<trial>/artifacts/logs/artifacts/model.patch`) next to its logs, so a finished job can be
 regraded without rerunning the agent: `harbor job regrade <job-dir>`.
 
@@ -111,7 +121,7 @@ Proposed plan:
   rule was fixed before any parity run, and the script reproduces the exact list. Both sides use the
   same images and eval scripts.
 - **Agent:** `mini-swe-agent@2.4.6` (Harbor has a built-in implementation), same
-  step and cost limits on both sides; model `deepseek-v4.1-flash` through the Harbor parity API (agreed with the Harbor team).
+  step and cost limits on both sides; model `deepseek-v4.1-flash` (agreed with the Harbor team).
 - **Runs:** sanity check on 5–10 tasks per side, then 1 full run per side, then 3 runs per side.
 - Reported as mean ± sample SEM with the run-range overlap criterion.
 
@@ -154,9 +164,9 @@ harbor run -p datasets/swebench_promax_parity -a mini-swe-agent -m <model> -n 2
 - **Instruction:** the problem statement is wrapped with one sentence giving the repository location
   (`/testbed`) and asking not to edit existing tests. The same wording should be used on the original
   side during parity.
-- **Agent network:** the agent phase uses Harbor's default network policy because agents need their
-  model API. ProMax issues are recent; agents with internet access can still look up upstream fixes,
-  so for leaderboard use consider an allowlist that only permits the model endpoint.
+- **Agent network:** ProMax issues are recent and their fixes are public upstream, so the agent phase is
+  restricted to LLM API hosts (same approach as the ProgramBench adapter). Add your endpoint with
+  `--allow-agent-host`.
 - **Oracle validation (2026-11-21):** `harbor run` (Harbor 0.26.0, local Docker) on all **170** tasks, one job
   per agent with `-n 4`, separate verifier with no network: the `oracle` agent gives reward 1.0 on 170/170
   and the `nop` agent gives 0.0 on 170/170, 0 exceptions. The tasks used local builds of the release images

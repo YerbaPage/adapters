@@ -29,6 +29,11 @@ original_image = "{docker_image}"
 
 [agent]
 timeout_sec = {agent_timeout}
+# While the agent works it can reach only LLM APIs, so it cannot fetch the upstream fix. Installing the
+# agent (agent.setup) still has network. Other model endpoints: add them at run time with
+# `--allow-agent-host <host>`.
+network_mode = "allowlist"
+allowed_hosts = ["api.openai.com", "api.anthropic.com"]
 
 [verifier]
 # Like the original harness, grade the candidate patch in a fresh container started from the task image
