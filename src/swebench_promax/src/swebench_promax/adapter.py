@@ -33,6 +33,7 @@ class ProMaxRecord:
     patch: str
     image_name: str
     eval_script: str
+    base_commit: str
 
 
 def load_records(data_dir: Path | None = None) -> list[ProMaxRecord]:
@@ -54,6 +55,7 @@ def load_records(data_dir: Path | None = None) -> list[ProMaxRecord]:
             patch=r["patch"],
             image_name=r["image_name"],
             eval_script=evals[r["instance_id"]]["eval_script"],
+            base_commit=r["base_commit"],
         )
         for r in rows
     ]
@@ -81,7 +83,7 @@ class SWEBenchProMaxAdapter:
         data_dir: Path | None = None,
         languages: list[str] | None = None,
         agent_timeout: float = 3600.0,
-        verifier_timeout: float = 2400.0,
+        verifier_timeout: float = 7800.0,
     ) -> None:
         self.output_dir = Path(output_dir)
         self.task_ids = task_ids
@@ -116,6 +118,7 @@ class SWEBenchProMaxAdapter:
                 (t / "task.toml").read_text(),
                 instance_id=rec.instance_id,
                 task_name=task_name(rec.instance_id),
+                base_commit=rec.base_commit,
                 language=lang,
                 repo=rec.repo,
                 docker_image=rec.image_name,

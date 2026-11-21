@@ -35,6 +35,13 @@ Paper: https://openreview.net/forum?id=12gyjCxLXM
 - The original harness also requires the reference patch to pass on the same image before counting a
   model patch as resolved. The reference patch passes on all 170 tasks, so the adapter grades the
   agent's patch alone.
+- **Separate verifier, like the original harness.** The original grades a candidate patch in a fresh
+  container. Here `[verifier] environment_mode = "separate"`: after the agent finishes, a
+  `[[verifier.collect]]` command exports everything it changed in `/testbed` relative to the task's base
+  commit (new files and commits included) to `/logs/artifacts/model.patch`; the verifier starts a fresh
+  container from the task image, applies that patch with the original commands (`git apply -v`, fallback
+  `patch -p1`; an apply failure scores 0) and then runs the eval script. Nothing else from the agent's
+  container reaches grading.
 - Verifier runs with `network_mode = "no-network"`, matching the original offline grading.
 - Oracle (`solution/solve.sh`) applies the reference patch with the same commands as the original
   harness (`git apply -v`, fallback `patch -p1`).
@@ -44,31 +51,42 @@ Paper: https://openreview.net/forum?id=12gyjCxLXM
 
 ```
 swebench_promax/<instance_id>/
-├── task.toml              # name = "swe-bench-promax/<lowercased instance_id>", authors, timeouts, resources
+├── task.toml              # name, authors, image, resources; separate verifier + patch collection
 ├── instruction.md         # problem statement + one line saying where the repo is
 ├── environment/
 │   └── Dockerfile         # used only with --force-build; the image already contains these steps
 ├── solution/solve.sh      # applies the reference patch
 └── tests/
-    ├── test.sh            # runs eval.sh, applies the original pass rule, writes /logs/verifier/reward.txt
+    ├── test.sh            # applies the agent's patch, runs eval.sh, applies the original pass rule
     └── eval.sh            # official eval script (verbatim)
 ```
 
 ## Run Evaluation / Harness
 
+Once the dataset is registered, run it from the registry:
+
 ```bash
-# registered dataset (main way to run)
 harbor run -d swe-bench-promax/swebench-promax -a mini-swe-agent -m <provider/model>
-
-# reference config (oracle by default) on locally generated tasks
-harbor run -c src/swebench_promax/run_swebench_promax.yaml
-
-# local generated tasks
-harbor run -p datasets/swebench_promax -a oracle -n 2
 ```
 
-Some tasks compile large projects (Angular/Bazel, Kubernetes, Hibernate, Rust workspaces); keep
-`n_concurrent_trials` low on a single machine.
+From locally generated tasks (see Usage below), with the reference config (oracle by default) or a path:
+
+```bash
+harbor run -c src/swebench_promax/run_swebench_promax.yaml
+harbor run -p datasets/swebench_promax -a oracle -n 4
+```
+
+A single task:
+
+```bash
+harbor trial start -p datasets/swebench_promax/mikf__gallery-dl-7872 -a oracle
+```
+
+Every trial keeps the agent's patch (`<trial>/artifacts/logs/artifacts/model.patch`) next to its logs, so a finished job can be
+regraded without rerunning the agent: `harbor job regrade <job-dir>`.
+
+Some tasks compile large projects (Angular/Bazel, Kubernetes, Hibernate, Rust workspaces); on a single
+machine keep concurrency moderate (we used `-n 4` per job).
 
 ## Usage: Create Task Directories
 
@@ -97,9 +115,9 @@ Proposed plan:
 - **Runs:** sanity check on 5–10 tasks per side, then 1 full run per side, then 3 runs per side.
 - Reported as mean ± sample SEM with the run-range overlap criterion.
 
-| Agent | Model | Metric | Runs | Dataset size | Original | Harbor |
+| Agent | Model | Metric | Runs | Dataset Size | Original (mean ± SEM) | Harbor (mean ± SEM) |
 |---|---|---|---|---|---|---|
-| mini-swe-agent@TBD | TBD | Resolved rate (%) | 3 | 56 | TBD | TBD |
+| mini-swe-agent@TBD | TBD | Resolved rate (%) | 3 | 56 (32.9%) | TBD | TBD |
 
 Reproduction:
 
@@ -128,6 +146,9 @@ harbor run -p datasets/swebench_promax_parity -a mini-swe-agent -m <model> -n 2
   - *Offline dependencies baked in.* Six Angular tasks used to download Bazel at test time, and four
     PlantUML tasks and one Hibernate task missed Gradle jars needed by `gradlew --offline`; their images
     now contain them.
+  - *Clean `git status`.* Each image lists its own untracked files (build outputs) in
+    `.git/info/exclude` and marks its own edits to tracked files skip-worktree, so a collected patch
+    contains only what the agent changed.
   - With the original harness (`test_run.py`, `--network none`): reference patch passes 170/170, empty
     patch passes 0/170.
 - **Instruction:** the problem statement is wrapped with one sentence giving the repository location
@@ -136,10 +157,21 @@ harbor run -p datasets/swebench_promax_parity -a mini-swe-agent -m <model> -n 2
 - **Agent network:** the agent phase uses Harbor's default network policy because agents need their
   model API. ProMax issues are recent; agents with internet access can still look up upstream fixes,
   so for leaderboard use consider an allowlist that only permits the model endpoint.
-- **Oracle validation (2026-11-20):** `harbor run` (Harbor 0.26.0, local Docker, verifier
-  `network_mode = "no-network"`) on all **170** tasks, one job per agent with `-n 4`: the `oracle`
-  agent gives reward 1.0 on 170/170 and the `nop` agent gives 0.0 on 170/170, 0 exceptions. The tasks
-  used the release images as prebuilt `docker_image`s, as the published adapter does.
+- **Oracle validation (2026-11-21):** `harbor run` (Harbor 0.26.0, local Docker) on all **170** tasks, one job
+  per agent with `-n 4`, separate verifier with no network: the `oracle` agent gives reward 1.0 on 170/170
+  and the `nop` agent gives 0.0 on 170/170, 0 exceptions. The tasks used local builds of the release images
+  as `docker_image`s.
+- **Grading integrity.** The verifier sees only the patch, in a fresh container, so changes to the agent's
+  environment (installed packages, `sitecustomize.py`, `PYTHONPATH`, background processes) cannot affect
+  grading. A patch that touches `.git/` is rejected, and the reward file starts at 0 and is only set when
+  `test.sh` finishes. As in the original harness, the patched code itself runs during evaluation, so a patch
+  can still change how the project's own test setup behaves (e.g. a `conftest.py` outside the restored test
+  files); the hidden test files are restored before the hidden test patch is applied.
+- **Retries run in place.** The original re-runs a known transient failure in a fresh container; here the
+  eval script is re-run in the same verifier container.
+- **Image-side files hidden from patches.** Two Bazel images (`bazelbuild__bazel-c_2be8c98`,
+  `bazelbuild__bazel-c_c5b4e33`) ship an edited `.bazelversion` marked skip-worktree, so an agent's change
+  to that file would not be part of its patch.
 - **Hidden test patch location:** the eval script embeds the hidden test patch, and it lives in
   `tests/`, which Harbor only mounts for the verifier.
 

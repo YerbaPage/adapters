@@ -20,16 +20,14 @@
             {
                 "split": "test",
                 "adapted_benchmark_size": 170,
-                "parity_benchmark_size": 48,
-                "parity_sampling_rate": 0.286,
+                "parity_benchmark_size": 56,
+                "parity_sampling_rate": 0.329,
                 "registry_benchmark_size": 170,
                 "added_agents": [
                     "None"
                 ],
                 "parity_matching_agents": [],
-                "parity_unmatching_agents": [
-                    "None"
-                ],
+                "parity_unmatching_agents": [],
                 "parity_costs": null,
                 "notes": "All 170 tasks adapted. Uses the 2026-11-20 benchmark fix: task images no longer expose upstream commits newer than the base commit (the fix itself was reachable via git in 169/170 images), 21 eval scripts now fail when the build fails (2 tasks used to pass with an empty patch), and 11 images include their offline test dependencies. Tasks run the published images directly via [environment].docker_image. Oracle validation 2026-11-20: harbor run -a oracle gives reward 1.0 on 170/170 tasks and -a nop gives 0.0 on 170/170 (one job per agent, 0 exceptions); original harness: reference patch passes 170/170, empty patch 0/170. Parity: pending, plan to be agreed with the Harbor team."
             }

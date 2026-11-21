@@ -21,7 +21,8 @@ def main() -> None:
     ap.add_argument("--data-dir", type=Path, default=None,
                     help="Local folder with swe-bench-promax.json and eval.json (default: download pinned HF revision)")
     ap.add_argument("--agent-timeout", type=float, default=3600.0)
-    ap.add_argument("--verifier-timeout", type=float, default=2400.0)
+    ap.add_argument("--verifier-timeout", type=float, default=7800.0,
+                    help="Whole verifier phase: up to 3 eval runs of 2400 s each (as upstream) plus patch apply")
     a = ap.parse_args()
 
     task_ids = a.task_ids

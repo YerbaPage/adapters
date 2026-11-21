@@ -31,9 +31,18 @@ original_image = "{docker_image}"
 timeout_sec = {agent_timeout}
 
 [verifier]
-# The original harness grades in a container started with `--network none`.
+# Like the original harness, grade the candidate patch in a fresh container started from the task image
+# with no network: the agent's container is not reused, only its patch.
+environment_mode = "separate"
 network_mode = "no-network"
 timeout_sec = {verifier_timeout}
+
+# After the agent finishes: export everything it changed in /testbed (including new files and commits)
+# relative to the task's base commit. Anything else the agent left in /logs/artifacts is discarded first. The image lists its own untracked files in .git/info/exclude, so
+# they are not part of the patch. Harbor copies /logs/artifacts into the verifier container.
+[[verifier.collect]]
+command = """bash -c 'mkdir -p /logs/artifacts && find /logs/artifacts -mindepth 1 -delete && cd /testbed && git add -N . && git -c core.filemode=false diff --binary --ignore-submodules=dirty {base_commit} > /logs/artifacts/model.patch; echo "PROMAX_COLLECT rc=$? bytes=$(wc -c < /logs/artifacts/model.patch)"'"""
+timeout_sec = 300.0
 
 [environment]
 # The published per-task image already contains everything environment/Dockerfile adds, so Harbor runs
