@@ -120,8 +120,9 @@ Proposed plan:
   `make_parity_subset.py` with a fixed seed (20261121) from tasks sorted by instance id. The selection
   rule was fixed before any parity run, and the script reproduces the exact list. Both sides use the
   same images and eval scripts.
-- **Agent:** `mini-swe-agent@2.4.6` (Harbor has a built-in implementation), same
-  step and cost limits on both sides; model `deepseek-v4.1-flash` (agreed with the Harbor team).
+- **Agent:** `mini-swe-agent@2.4.6` with `deepseek-v4.1-flash` on both sides (model agreed with the
+  Harbor team). The original side uses the benchmark's own runner, `src/inference/run_mini_swe_agent.py`,
+  and grades with `src/evaluation/test_run.py`.
 - **Runs:** sanity check on 5–10 tasks per side, then 1 full run per side, then 3 runs per side.
 - Reported as mean ± sample SEM with the run-range overlap criterion.
 

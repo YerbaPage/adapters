@@ -82,7 +82,7 @@ class SWEBenchProMaxAdapter:
         overwrite: bool = False,
         data_dir: Path | None = None,
         languages: list[str] | None = None,
-        agent_timeout: float = 3600.0,
+        agent_timeout: float = 7200.0,
         verifier_timeout: float = 7800.0,
     ) -> None:
         self.output_dir = Path(output_dir)
