@@ -117,8 +117,7 @@ uv run swebench_promax --output-dir /tmp/pmx --data-dir /path/to/local/json   # 
 |---|---|---|---|---|---|---|
 | mini-swe-agent@2.4.6 | deepseek-v4.1-flash | Resolved rate (%) | 3 | 28 (16.5%) | 56.0 ± 2.4 | 59.5 ± 1.2 |
 
-Per run: original 53.6 / 60.7 / 53.6, Harbor 60.7 / 57.1 / 60.7; the run ranges overlap. 21 of the 28 tasks
-have the same outcome in all six runs, and each of the other 7 also changes between runs of the same side.
+Per run: original 53.6 / 60.7 / 53.6, Harbor 60.7 / 57.1 / 60.7; the run ranges overlap.
 
 - **Subset:** `parity_task_ids.txt`, 28 tasks, 4 per language (all 7 languages), drawn by
   `make_parity_subset.py` with a fixed seed (20261121) from tasks sorted by instance id. Both sides use
@@ -168,8 +167,7 @@ harbor run -p datasets/swebench_promax_parity -a mini-swe-agent -m openai/deepse
   - With the original harness (`test_run.py`, `--network none`): reference patch passes 170/170, empty
     patch passes 0/170.
 - **Instruction:** the problem statement is wrapped with one sentence giving the repository location
-  (`/testbed`) and asking not to edit existing tests. The same wording should be used on the original
-  side during parity.
+  (`/testbed`) and asking not to edit existing tests. The original side's runner uses the same wording.
 - **Agent network:** ProMax issues are recent and their fixes are public upstream, so the agent phase is
   restricted to LLM API hosts (same approach as the ProgramBench adapter). Add your endpoint with
   `--allow-agent-host`.

@@ -7,7 +7,7 @@
         "adapted_benchmark_size": 170,
         "parity_benchmark_size": 28,
         "number_of_runs": 3,
-        "notes": "28 tasks (4 per language x 7 languages, parity_task_ids.txt), 3 runs per side. mini-swe-agent default `mini` config, 2 h agent limit per trial. Original side: src/inference/run_mini_swe_agent.py in the benchmark repo (agent on the host, task container with --network none), graded with src/evaluation/test_run.py. Harbor side: installed mini-swe-agent, agent network limited to the model endpoint. 21 of 28 tasks have the same outcome in all six runs; each of the other 7 also changes between runs of the same side.",
+        "notes": "28 tasks (4 per language x 7 languages, parity_task_ids.txt), 3 runs per side. mini-swe-agent default `mini` config, 2 h agent limit per trial. Original side: src/inference/run_mini_swe_agent.py in the benchmark repo (agent on the host, task container with --network none), graded with src/evaluation/test_run.py. Harbor side: installed mini-swe-agent, agent network limited to the model endpoint.",
         "original_parity_repo": "https://github.com/key4127/SWE-Bench-ProMax",
         "adapter_pr": [
             "https://github.com/harbor-framework/adapters/pull/125"
