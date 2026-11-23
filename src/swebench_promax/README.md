@@ -130,6 +130,7 @@ Per run: original 53.6 / 60.7 / 53.6, Harbor 60.7 / 57.1 / 60.7; the run ranges 
   1 h ones in every run.
 - **Links:** [original benchmark](https://github.com/key4127/SWE-Bench-ProMax) ·
   [adapter PR](https://github.com/harbor-framework/adapters/pull/125) ·
+  [dataset PR](https://github.com/harbor-framework/harbor-datasets/pull/300) ·
   [parity artifacts](https://huggingface.co/datasets/swe-bench-promax/SWE-Bench-ProMax-harbor-parity)
   ([parity-experiments#301](https://huggingface.co/datasets/harborframework/parity-experiments/discussions/301))
 
