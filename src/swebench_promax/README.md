@@ -25,8 +25,9 @@ Paper: https://openreview.net/forum?id=12gyjCxLXM
 
 ## Adapter Features
 
-- Runs the benchmark's own per-instance images (`key4127/refactor-dockerhub:<instance_id>`) directly
-  (`[environment].docker_image`), so nothing is built locally; `environment/Dockerfile` is only used
+- Runs the benchmark's own per-instance images directly (`[environment].docker_image`), pinned by
+  digest: `key4127/refactor-dockerhub:<instance_id>-harbor-adapted@sha256:...` (`image_digests.json`),
+  so nothing is built locally; `environment/Dockerfile` is only used
   with `--force-build`.
 - Copies the official eval script verbatim into `tests/eval.sh`; `tests/test.sh` reproduces the
   original pass rule (`analyze_test_output`) and writes the reward. Like the original harness, a failure
@@ -112,35 +113,39 @@ uv run swebench_promax --output-dir /tmp/pmx --data-dir /path/to/local/json   # 
 
 ## Comparison with Original Benchmark (Parity)
 
-**Status: pending — plan to be agreed with the Harbor team.**
-
-Proposed plan:
-
-- **Subset:** `parity_task_ids.txt`, 28 tasks, 4 per language (all 7 languages), drawn by
-  `make_parity_subset.py` with a fixed seed (20261121) from tasks sorted by instance id. The selection
-  rule was fixed before any parity run, and the script reproduces the exact list. Both sides use the
-  same images and eval scripts.
-- **Agent:** `mini-swe-agent@2.4.6` with `deepseek-v4.1-flash` on both sides (model agreed with the
-  Harbor team). The original side uses the benchmark's own runner, `src/inference/run_mini_swe_agent.py`,
-  and grades with `src/evaluation/test_run.py`.
-- **Runs:** sanity check on 5–10 tasks per side, then 1 full run per side, then 3 runs per side.
-- Reported as mean ± sample SEM with the run-range overlap criterion.
-
 | Agent | Model | Metric | Runs | Dataset Size | Original (mean ± SEM) | Harbor (mean ± SEM) |
 |---|---|---|---|---|---|---|
-| mini-swe-agent@2.4.6 | deepseek-v4.1-flash | Resolved rate (%) | 3 | 28 (16.5%) | TBD | TBD |
+| mini-swe-agent@2.4.6 | deepseek-v4.1-flash | Resolved rate (%) | 3 | 28 (16.5%) | 56.0 ± 2.4 | 59.5 ± 1.2 |
 
-Reproduction:
+Per run: original 53.6 / 60.7 / 53.6, Harbor 60.7 / 57.1 / 60.7; the run ranges overlap. 21 of the 28 tasks
+have the same outcome in all six runs, and each of the other 7 also changes between runs of the same side.
+
+- **Subset:** `parity_task_ids.txt`, 28 tasks, 4 per language (all 7 languages), drawn by
+  `make_parity_subset.py` with a fixed seed (20261121) from tasks sorted by instance id. Both sides use
+  the same images and eval scripts.
+- **Agent:** `mini-swe-agent@2.4.6` with its default `mini` config and `deepseek-v4.1-flash`, 2 h agent
+  limit per trial. The original side runs the benchmark's runner `src/inference/run_mini_swe_agent.py`
+  (agent on the host, task container with `--network none`) and grades with `src/evaluation/test_run.py`.
+- **Links:** [original benchmark](https://github.com/key4127/SWE-Bench-ProMax) ·
+  [adapter PR](https://github.com/harbor-framework/adapters/pull/125) ·
+  [parity artifacts](https://huggingface.co/datasets/swe-bench-promax/SWE-Bench-ProMax-harbor-parity)
+  ([parity-experiments#301](https://huggingface.co/datasets/harborframework/parity-experiments/discussions/301))
+
+Reproduction (any OpenAI-compatible endpoint serving the model):
 
 ```bash
-# Original side: run the agent on the instances in parity_task_ids.txt, collect patches into
-# preds.json, then grade with the original harness.
-python src/evaluation/test_run.py --pred preds.json \
-    --golden data/swe-bench-promax.json --eval data/eval.json --output pass_rate.json
+export OPENAI_API_KEY=... OPENAI_BASE_URL=https://<endpoint>/v1
+
+# Original side (SWE-Bench-ProMax repo)
+python src/inference/run_mini_swe_agent.py --model openai/deepseek-v4.1-flash \
+    --instance-ids parity_task_ids.txt --time-limit 7200 --workers 4 --output runs/parity_run1
+python src/evaluation/test_run.py --pred runs/parity_run1/preds.json \
+    --golden data/swe-bench-promax.json --eval data/eval.json --output runs/parity_run1/pass_rate.json
 
 # Harbor side
 uv run swebench_promax --split parity --output-dir datasets/swebench_promax_parity
-harbor run -p datasets/swebench_promax_parity -a mini-swe-agent -m <model> -n 2
+harbor run -p datasets/swebench_promax_parity -a mini-swe-agent -m openai/deepseek-v4.1-flash \
+    --ak version=2.4.6 --allow-agent-host <endpoint host> -n 4
 ```
 
 ## Notes & Caveats
@@ -168,10 +173,9 @@ harbor run -p datasets/swebench_promax_parity -a mini-swe-agent -m <model> -n 2
 - **Agent network:** ProMax issues are recent and their fixes are public upstream, so the agent phase is
   restricted to LLM API hosts (same approach as the ProgramBench adapter). Add your endpoint with
   `--allow-agent-host`.
-- **Oracle validation (2026-11-21):** `harbor run` (Harbor 0.26.0, local Docker) on all **170** tasks, one job
-  per agent with `-n 4`, separate verifier with no network: the `oracle` agent gives reward 1.0 on 170/170
-  and the `nop` agent gives 0.0 on 170/170, 0 exceptions. The tasks used local builds of the release images
-  as `docker_image`s.
+- **Oracle validation (2026-11-23):** `harbor run` (Harbor 0.26.0, local Docker) on all **170** tasks with the
+  published, digest-pinned images, one job per agent with `-n 4`, separate verifier with no network: the
+  `oracle` agent gives reward 1.0 on 170/170 and the `nop` agent gives 0.0 on 170/170, 0 exceptions.
 - **Grading integrity.** The verifier sees only the patch, in a fresh container, so changes to the agent's
   environment (installed packages, `sitecustomize.py`, `PYTHONPATH`, background processes) cannot affect
   grading. A patch that touches `.git/` is rejected, and the reward file starts at 0 and is only set when

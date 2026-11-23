@@ -1,1 +1,39 @@
-[]
+[
+    {
+        "adapter_name": "swebench_promax",
+        "agent": "mini-swe-agent@2.4.6",
+        "model": "deepseek-v4.1-flash",
+        "date": "2026-11-23",
+        "adapted_benchmark_size": 170,
+        "parity_benchmark_size": 28,
+        "number_of_runs": 3,
+        "notes": "28 tasks (4 per language x 7 languages, parity_task_ids.txt), 3 runs per side. mini-swe-agent default `mini` config, 2 h agent limit per trial. Original side: src/inference/run_mini_swe_agent.py in the benchmark repo (agent on the host, task container with --network none), graded with src/evaluation/test_run.py. Harbor side: installed mini-swe-agent, agent network limited to the model endpoint. 21 of 28 tasks have the same outcome in all six runs; each of the other 7 also changes between runs of the same side.",
+        "original_parity_repo": "https://github.com/key4127/SWE-Bench-ProMax",
+        "adapter_pr": [
+            "https://github.com/harbor-framework/adapters/pull/125"
+        ],
+        "dataset_pr": [],
+        "parity_pr": [
+            "https://huggingface.co/datasets/harborframework/parity-experiments/discussions/301",
+            "https://huggingface.co/datasets/swe-bench-promax/SWE-Bench-ProMax-harbor-parity"
+        ],
+        "metrics": [
+            {
+                "benchmark_name": "SWE-Bench-ProMax",
+                "metric": "Resolved rate (%)",
+                "original": "56.0 ± 2.4",
+                "harbor": "59.5 ± 1.2",
+                "original_runs": [
+                    53.6,
+                    60.7,
+                    53.6
+                ],
+                "harbor_runs": [
+                    60.7,
+                    57.1,
+                    60.7
+                ]
+            }
+        ]
+    }
+]

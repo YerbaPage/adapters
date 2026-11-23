@@ -3,7 +3,8 @@
 Source data: the Hugging Face dataset ``swe-bench-promax/SWE-Bench-ProMax`` at ``HF_REVISION``:
 ``swe-bench-promax.json`` (170 instances) and ``eval.json`` (one official eval script per instance).
 
-Each Harbor task runs the instance's published image directly (``[environment].docker_image``), copies
+Each Harbor task runs the instance's published image directly (``[environment].docker_image``, pinned to
+the digest in ``image_digests.json``), copies
 the official eval script verbatim into ``tests/eval.sh`` and reproduces the original pass rule (see
 ``task-template/tests/test.sh``).
 """
@@ -18,6 +19,9 @@ from pathlib import Path
 HF_REPO = "swe-bench-promax/SWE-Bench-ProMax"
 HF_REVISION = "b6f4fd65a18c0875ee410b1dcc32246c099ec03b"
 TEMPLATE_DIR = Path(__file__).parent / "task-template"
+# Docker Hub digest of each task image (the `<instance_id>-harbor-adapted` tag), so a later push to the
+# tag cannot change an existing task.
+IMAGE_DIGESTS: dict[str, str] = json.loads((Path(__file__).parent / "image_digests.json").read_text())
 
 # Instance ids left out of the adapted dataset, with the reason. Empty: every task's empty patch fails
 # and its reference patch passes (checked with the original harness and with `harbor run`).
@@ -53,12 +57,21 @@ def load_records(data_dir: Path | None = None) -> list[ProMaxRecord]:
             language=r["language"],
             problem_statement=r["problem_statement"],
             patch=r["patch"],
-            image_name=r["image_name"],
+            image_name=pinned_image(r["image_name"], r["instance_id"]),
             eval_script=evals[r["instance_id"]]["eval_script"],
             base_commit=r["base_commit"],
         )
         for r in rows
     ]
+
+
+def pinned_image(image_name: str, instance_id: str) -> str:
+    """`repo:<id>` -> `repo:<id>-harbor-adapted@sha256:...` when the digest is known."""
+    digest = IMAGE_DIGESTS.get(instance_id)
+    if digest is None:
+        return image_name
+    repo = image_name.rsplit(":", 1)[0]
+    return f"{repo}:{instance_id}-harbor-adapted@{digest}"
 
 
 def task_name(instance_id: str) -> str:
