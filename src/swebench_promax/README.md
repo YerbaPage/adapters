@@ -122,9 +122,12 @@ Per run: original 53.6 / 60.7 / 53.6, Harbor 60.7 / 57.1 / 60.7; the run ranges 
 - **Subset:** `parity_task_ids.txt`, 28 tasks, 4 per language (all 7 languages), drawn by
   `make_parity_subset.py` with a fixed seed (20261121) from tasks sorted by instance id. Both sides use
   the same images and eval scripts.
-- **Agent:** `mini-swe-agent@2.4.6` with its default `mini` config and `deepseek-v4.1-flash`, 2 h agent
-  limit per trial. The original side runs the benchmark's runner `src/inference/run_mini_swe_agent.py`
-  (agent on the host, task container with `--network none`) and grades with `src/evaluation/test_run.py`.
+- **Agent:** `mini-swe-agent@2.4.6` with its default `mini` config and `deepseek-v4.1-flash`. The original
+  side runs the benchmark's runner `src/inference/run_mini_swe_agent.py` (agent on the host, task container
+  with `--network none`) and grades with `src/evaluation/test_run.py`.
+- **Time limit:** 1 h per trial at first. Because of slow API responses, 9 tasks reached it, so the limit
+  was raised to 2 h and these 9 tasks were rerun on both sides, 3 times each; their 2 h results replace the
+  1 h ones in every run.
 - **Links:** [original benchmark](https://github.com/key4127/SWE-Bench-ProMax) ·
   [adapter PR](https://github.com/harbor-framework/adapters/pull/125) ·
   [parity artifacts](https://huggingface.co/datasets/swe-bench-promax/SWE-Bench-ProMax-harbor-parity)
