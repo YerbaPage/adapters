@@ -28,5 +28,5 @@ orchestrator:
   type: local
   # Several images (Angular/Bazel, Kubernetes, Hibernate, Rust crates) compile large projects;
   # keep concurrency low on a single host.
-  n_concurrent_trials: 2
+  n_concurrent_trials: 4
   quiet: false
