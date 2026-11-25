@@ -126,8 +126,8 @@ Per run: original 64.3 / 57.1 / 53.6, Harbor 60.7 / 50.0 / 50.0; the run ranges 
   the benchmark's runner `src/inference/run_mini_swe_agent.py` (agent on the host, task container with
   `--network none`) and grades with `src/evaluation/test_run.py`, both at commit
   [`70b684dc131a`](https://github.com/key4127/SWE-Bench-ProMax/tree/70b684dc131af777500a6f283fed00ae77612ab5). The Harbor side uses Harbor 0.26.0.
-- **Model:** `deepseek-v4.1-flash` (version DeepSeek-V4.1-Flash-1017) from the official DeepSeek API, reached through a forwarding proxy; the
-  same for both sides.
+- **Model:** `deepseek-v4.1-flash` (version DeepSeek-V4.1-Flash-1017) from the official DeepSeek API; the same
+  for both sides.
 - **Time limit:** 2 h agent time per trial on both sides.
 - **Links:** [original benchmark](https://github.com/key4127/SWE-Bench-ProMax) ·
   [adapter PR](https://github.com/harbor-framework/adapters/pull/125) ·
