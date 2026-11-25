@@ -27,7 +27,9 @@ def main() -> None:
 
     task_ids = a.task_ids
     if a.split == "parity":
-        f = Path(__file__).resolve().parents[2] / "parity_task_ids.txt"
+        if task_ids:
+            ap.error("--split parity and --task-ids cannot be combined")
+        f = Path(__file__).parent / "parity_task_ids.txt"  # shipped inside the package
         task_ids = [l.strip() for l in f.read_text().splitlines() if l.strip()]
 
     SWEBenchProMaxAdapter(

@@ -115,23 +115,24 @@ uv run swebench_promax --output-dir /tmp/pmx --data-dir /path/to/local/json   # 
 
 | Agent | Model | Metric | Runs | Dataset Size | Original (mean ± SEM) | Harbor (mean ± SEM) |
 |---|---|---|---|---|---|---|
-| mini-swe-agent@2.4.6 | deepseek-v4.1-flash | Resolved rate (%) | 3 | 28 (16.5%) | 56.0 ± 2.4 | 59.5 ± 1.2 |
+| mini-swe-agent@2.4.6 | deepseek-v4.1-flash | Resolved rate (%) | 3 | 28 (16.5%) | 58.3 ± 3.1 | 53.6 ± 3.6 |
 
-Per run: original 53.6 / 60.7 / 53.6, Harbor 60.7 / 57.1 / 60.7; the run ranges overlap.
+Per run: original 64.3 / 57.1 / 53.6, Harbor 60.7 / 50.0 / 50.0; the run ranges overlap.
 
-- **Subset:** `parity_task_ids.txt`, 28 tasks, 4 per language (all 7 languages), drawn by
+- **Subset:** `src/swebench_promax/parity_task_ids.txt`, 28 tasks, 4 per language (all 7 languages), drawn by
   `make_parity_subset.py` with a fixed seed (20261121) from tasks sorted by instance id. Both sides use
   the same images and eval scripts.
-- **Agent:** `mini-swe-agent@2.4.6` with its default `mini` config and `deepseek-v4.1-flash`. The original
-  side runs the benchmark's runner `src/inference/run_mini_swe_agent.py` (agent on the host, task container
-  with `--network none`) and grades with `src/evaluation/test_run.py`.
-- **Time limit:** 1 h per trial at first. Because of slow API responses, 9 tasks reached it, so the limit
-  was raised to 2 h and these 9 tasks were rerun on both sides, 3 times each; their 2 h results replace the
-  1 h ones in every run.
+- **Agent:** `mini-swe-agent@2.4.6` with its default `mini` config on both sides. The original side runs
+  the benchmark's runner `src/inference/run_mini_swe_agent.py` (agent on the host, task container with
+  `--network none`) and grades with `src/evaluation/test_run.py`, both at commit
+  [`70b684dc131a`](https://github.com/key4127/SWE-Bench-ProMax/tree/70b684dc131af777500a6f283fed00ae77612ab5). The Harbor side uses Harbor 0.26.0.
+- **Model:** `deepseek-v4.1-flash` (version DeepSeek-V4.1-Flash-1017) from the official DeepSeek API, reached through a forwarding proxy; the
+  same for both sides.
+- **Time limit:** 2 h agent time per trial on both sides.
 - **Links:** [original benchmark](https://github.com/key4127/SWE-Bench-ProMax) ·
   [adapter PR](https://github.com/harbor-framework/adapters/pull/125) ·
   [dataset PR](https://github.com/harbor-framework/harbor-datasets/pull/300) ·
-  [parity artifacts](https://huggingface.co/datasets/swe-bench-promax/SWE-Bench-ProMax-harbor-parity)
+  [parity artifacts](https://huggingface.co/datasets/swe-bench-promax/SWE-Bench-ProMax-harbor-parity/tree/2b35a0789bf8122d02d0bcea0d4686652bf3713a)
   ([parity-experiments#301](https://huggingface.co/datasets/harborframework/parity-experiments/discussions/301))
 
 Reproduction (any OpenAI-compatible endpoint serving the model):
@@ -139,7 +140,7 @@ Reproduction (any OpenAI-compatible endpoint serving the model):
 ```bash
 export OPENAI_API_KEY=... OPENAI_BASE_URL=https://<endpoint>/v1
 
-# Original side (SWE-Bench-ProMax repo)
+# Original side (SWE-Bench-ProMax repo, git checkout 70b684dc131a; copy src/swebench_promax/parity_task_ids.txt from this adapter)
 python src/inference/run_mini_swe_agent.py --model openai/deepseek-v4.1-flash \
     --instance-ids parity_task_ids.txt --time-limit 7200 --workers 4 --output runs/parity_run1
 python src/evaluation/test_run.py --pred runs/parity_run1/preds.json \
@@ -186,16 +187,24 @@ harbor run -p datasets/swebench_promax_parity -a mini-swe-agent -m openai/deepse
   files); the hidden test files are restored before the hidden test patch is applied.
 - **Retries run in place.** The original re-runs a known transient failure in a fresh container; here the
   eval script is re-run in the same verifier container.
-- **Image-side files hidden from patches.** Two Bazel images (`bazelbuild__bazel-c_2be8c98`,
-  `bazelbuild__bazel-c_c5b4e33`) ship an edited `.bazelversion` marked skip-worktree, so an agent's change
-  to that file would not be part of its patch.
+- **Image-side files hidden from patches.** The patch is built with the same command as the original
+  runner (`git add -N . && git diff --binary <base>`), so both sides see the same files. Checked on all 170
+  images: only two Bazel images (`bazelbuild__bazel-c_2be8c98`, `bazelbuild__bazel-c_c5b4e33`) have a
+  skip-worktree file (an edited `.bazelversion`), so an agent's change to that file would not be part of its
+  patch. 19 images list files in `.git/info/exclude`; every entry is a single file (build outputs, stray
+  pip files, two `.cargo/config.toml`), with no directories or glob patterns.
+- **Collection failures are not scored.** If exporting the patch fails or times out, `model.patch` is not
+  written and `tests/test.sh` exits without a reward, so Harbor records the trial as an error rather
+  than a 0.
 - **Hidden test patch location:** the eval script embeds the hidden test patch, and it lives in
   `tests/`, which Harbor only mounts for the verifier.
 
 ## Installation / Prerequisites
 
-- Docker (with Compose v2 and buildx), Python ≥ 3.11, [uv](https://docs.astral.sh/uv/), Harbor
-  (`uv tool install harbor`).
+- Docker (with Compose v2 and buildx), Python ≥ 3.11, [uv](https://docs.astral.sh/uv/), Harbor ≥ 0.26.0
+  (`uv tool install harbor`). The tasks rely on the agent `allowlist` network mode, the separate verifier
+  environment and `[[verifier.collect]]` (validated with 0.26.0); without them the agent could fetch the
+  upstream fix and grading would run in the agent's container.
 - About 2–10 GB disk per image; the full set is several hundred GB.
 - Network access to pull the task images.
 
